@@ -10,3 +10,4 @@ tokenizers==0.15.2
 torch==2.2.1
 transformers==4.39.1
 urllib3==2.2.1
+gradio==4.22.0
