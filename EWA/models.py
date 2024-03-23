@@ -2,7 +2,10 @@ import fasttext
 
 from EWA import crawler
 from transformers import pipeline, AutoModelForTokenClassification, AutoTokenizer
+from transformers import logging
 from keybert import KeyBERT
+
+logging.set_verbosity_error()
 
 
 LANGUAGE_MODEL_MAPPING = {
