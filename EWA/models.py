@@ -2,20 +2,21 @@ import fasttext
 
 from EWA import crawler
 from transformers import pipeline, AutoModelForTokenClassification, AutoTokenizer
+from keybert import KeyBERT
 
 
 LANGUAGE_MODEL_MAPPING = {
     "tr": {
         "ner": "savasy/bert-base-turkish-ner-cased",
-        "ke": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
+        "kw": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
     },
     "en": {
         "ner": "dslim/bert-base-NER",
-        "ke": "sentence-transformers/paraphrase-mpnet-base-v2"
+        "kw": "sentence-transformers/paraphrase-mpnet-base-v2"
     },
     "other": {
         "ner": "", # update with multilanguage model.
-        "ke": ""
+        "kw": ""
     },
 }
 
@@ -44,7 +45,15 @@ class KeywordExtraction:
         self.model = self._load_model(model_name)
     
     def _load_model(self, model_name):
-        return True
+        kw_model = KeyBERT(model_name)
+        print(f"KeywordExtraction model is loaded: {self.model_name}")
+        return kw_model
+    
+    def predict(self, text):
+
+        output = self.model.extract_keywords(text)
+        return output
+    
 
 class LanguageDetection:
 
@@ -66,9 +75,10 @@ class LanguageDetection:
         print(f"predicted language is: '{language}'")
         return language
 
+
 class Analyzer:
 
-    def __init__(self, url, ner_model, kw_model) -> None:
+    def __init__(self, url, ner_model, kw_model, **kwargs) -> None:
         self.url = url
         self.ner_model_name = ner_model
         self.kw_model_name = kw_model
@@ -79,11 +89,20 @@ class Analyzer:
         self.content = crawler.get_text(self.url)
 
 
-    def setup_ner(self):
+    def setup(self):
+        """Loads models in a dictionary.
+            {'ner': NER, 'kw': 'KeywordExtraction'}
+        """
+        self.models = {
+            'ner': self.load_ner(),
+            'kw': self.load_kw(),
+        }
+
+
+    def load_ner(self):
         """Load the required models and values according to the given input."""
         if self.ner_model_name:
-            self.ner = NER(self.ner_model_name)
-            return True
+            return NER(self.ner_model_name)
         
         # if ner model name is not given:
         if not self.language:
@@ -91,32 +110,35 @@ class Analyzer:
 
         # get default model name for language:
         self.ner_model_name = LANGUAGE_MODEL_MAPPING[self.language]['ner']
-        self.ner = NER(self.ner_model_name)
-
-        return True
+        return NER(self.ner_model_name)
     
 
-    def setup_kw(self):
+    def load_kw(self):
         """Load the required models and values according to the given input."""
 
         if self.kw_model_name:
-            self.kw = KeywordExtraction(self.kw_model_name)
-            return True
+            return KeywordExtraction(self.kw_model_name)
         
         if not self.language:
             self.language = self.language_detector.predict(self.content)
 
         self.kw_model_name = LANGUAGE_MODEL_MAPPING[self.language]['kw']
-        self.kw = KeywordExtraction(self.kw_model_name)
-        return True
+        return KeywordExtraction(self.kw_model_name)
 
+
+    def extract_entities(self):
+        
+        results = {}        
+        for use_case, model in self.models.items():
+            results[use_case] = model.predict(self.content)
+
+        return results
 
 
 if __name__ == "__main__":
     url = 'https://www.ntv.com.tr/galeri/dunya/moskovada-katliam-taniklarin-gozunden-adim-adim-yasananlar,Fyt-uIW2PEu0DWy-Y76KDg'
     analyzer= Analyzer(url=url, ner_model=None, kw_model=None)
-    analyzer.setup_ner()
+    analyzer.setup()
 
-    result = analyzer.ner.predict(analyzer.content)
+    result = analyzer.extract_entities()
     print(result)
-
