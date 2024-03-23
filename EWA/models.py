@@ -1,8 +1,8 @@
 import fasttext
 
+from EWA import crawler
 from transformers import pipeline, AutoModelForTokenClassification, AutoTokenizer
 
-CUSTOM_LANGAUGES = ['tr', 'en']
 
 LANGUAGE_MODEL_MAPPING = {
     "tr": {
@@ -29,7 +29,9 @@ class NER:
     def _load_model(self, model_name):
         model = AutoModelForTokenClassification.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        return pipeline('ner', model=model, tokenizer=tokenizer)
+        ner_model = pipeline('ner', model=model, tokenizer=tokenizer)
+        print(f"NER model is loaded: {self.model_name}")
+        return ner_model
     
     def predict(self, text):
         return self.model(text, aggregation_strategy="simple")
@@ -47,6 +49,7 @@ class KeywordExtraction:
 class LanguageDetection:
 
     MODEL_PATH = "./EWA/lid.176.ftz"
+    CUSTOM_LANGAUGES = ['tr', 'en']
     def __init__(self):
         self.model = self._load_model(self.MODEL_PATH)
     
@@ -54,38 +57,66 @@ class LanguageDetection:
         return fasttext.load_model(model_path)
 
     def predict(self, text):
-        result, score = self.model.predict(text)
-        return result[0], score[0]
+        text = text.replace("\n", " ")
+        result, _ = self.model.predict(text)
+        language = result[0].split("__label__")[1]
+        if language not in self.CUSTOM_LANGAUGES:
+            return 'other'
+        
+        print(f"predicted language is: '{language}'")
+        return language
 
-def detect_language(language_model, text):
-    res, _ = language_model.predict(text)
-    language = res.split("__label__")[1]
-    if language not in CUSTOM_LANGAUGES:
-        return 'other'
-    return language
+class Analyzer:
 
-def load_models(language):
-    ner_model_name = LANGUAGE_MODEL_MAPPING[language]['ner']
-    ke_model_name = LANGUAGE_MODEL_MAPPING[language]['ke']
-    print("NER model: ", ner_model_name)
-    print("Keyword Extraction model: ", ke_model_name)
+    def __init__(self, url, ner_model, kw_model) -> None:
+        self.url = url
+        self.ner_model_name = ner_model
+        self.kw_model_name = kw_model
+        
+        self.language = None # to be extracted later.
+        self.language_detector = LanguageDetection()
+        
+        self.content = crawler.get_text(self.url)
 
-    ner = NER(ner_model_name)
-    keyword = KeywordExtraction(ke_model_name)
 
-    return ner, keyword
+    def setup_ner(self):
+        """Load the required models and values according to the given input."""
+        if self.ner_model_name:
+            self.ner = NER(self.ner_model_name)
+            return True
+        
+        # if ner model name is not given:
+        if not self.language:
+            self.language = self.language_detector.predict(self.content)
 
+        # get default model name for language:
+        self.ner_model_name = LANGUAGE_MODEL_MAPPING[self.language]['ner']
+        self.ner = NER(self.ner_model_name)
+
+        return True
+    
+
+    def setup_kw(self):
+        """Load the required models and values according to the given input."""
+
+        if self.kw_model_name:
+            self.kw = KeywordExtraction(self.kw_model_name)
+            return True
+        
+        if not self.language:
+            self.language = self.language_detector.predict(self.content)
+
+        self.kw_model_name = LANGUAGE_MODEL_MAPPING[self.language]['kw']
+        self.kw = KeywordExtraction(self.kw_model_name)
+        return True
 
 
 
 if __name__ == "__main__":
-    lng_model = LanguageDetection()
+    url = 'https://www.ntv.com.tr/galeri/dunya/moskovada-katliam-taniklarin-gozunden-adim-adim-yasananlar,Fyt-uIW2PEu0DWy-Y76KDg'
+    analyzer= Analyzer(url=url, ner_model=None, kw_model=None)
+    analyzer.setup_ner()
 
-    text = "testing NER model with a new user, Fatih Sati who works in a company called VeriUs Technology"
-    lang = detect_language(lng_model, text)
-    print("Detected language is: ", lang)
+    result = analyzer.ner.predict(analyzer.content)
+    print(result)
 
-    ner, keyword = load_models(lang)
-
-    results = {'ner': ner.predict(text)}
-    print(results)
