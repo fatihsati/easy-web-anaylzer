@@ -35,7 +35,10 @@ class NER:
         return ner_model
     
     def predict(self, text):
-        return self.model(text, aggregation_strategy="simple")
+        output = self.model(text, aggregation_strategy="simple")
+        for entity in output:
+            entity['score'] = float(entity['score'])
+        return output
 
 
 class KeywordExtraction:
@@ -52,6 +55,8 @@ class KeywordExtraction:
     def predict(self, text):
 
         output = self.model.extract_keywords(text)
+        # convert float32 to python float
+        output = [(word, float(score)) for word, score in output]
         return output
     
 
