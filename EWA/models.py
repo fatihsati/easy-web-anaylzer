@@ -54,7 +54,7 @@ class KeywordExtraction:
     
     def predict(self, text, language='en'):
 
-        output = self.model.extract_keywords(text, keyphrase_ngram_range=(1, 3), top_n=10)
+        output = self.model.extract_keywords(text, keyphrase_ngram_range=(1, 3), top_n=10, use_maxsum=True)
         # convert float32 to python float
         output = [
             {
