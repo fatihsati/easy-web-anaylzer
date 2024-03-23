@@ -52,11 +52,16 @@ class KeywordExtraction:
         print(f"KeywordExtraction model is loaded: {self.model_name}")
         return kw_model
     
-    def predict(self, text):
+    def predict(self, text, language='en'):
 
-        output = self.model.extract_keywords(text)
+        output = self.model.extract_keywords(text, keyphrase_ngram_range=(1, 3), top_n=10)
         # convert float32 to python float
-        output = [(word, float(score)) for word, score in output]
+        output = [
+            {
+                'keyword': word, 
+                'score': float(score)
+            } for word, score in output]
+        
         return output
     
 
@@ -95,13 +100,12 @@ class Analyzer:
 
 
     def setup(self):
-        """Loads models in a dictionary.
-            {'ner': NER, 'kw': 'KeywordExtraction'}
+        """Loads models:
+            1. ner
+            2. kw
         """
-        self.models = {
-            'ner': self.load_ner(),
-            'kw': self.load_kw(),
-        }
+        self.ner = self.load_ner()
+        self.kw = self.load_kw()
 
 
     def load_ner(self):
@@ -133,17 +137,24 @@ class Analyzer:
 
     def extract_entities(self):
         
-        results = {}        
-        for use_case, model in self.models.items():
-            results[use_case] = model.predict(self.content)
-
+        results = {
+            'ner': self.ner.predict(self.content),
+            'kw': self.kw.predict(self.content, self.language)
+        }        
+        
         return results
 
 
 if __name__ == "__main__":
-    url = 'https://www.ntv.com.tr/galeri/dunya/moskovada-katliam-taniklarin-gozunden-adim-adim-yasananlar,Fyt-uIW2PEu0DWy-Y76KDg'
-    analyzer= Analyzer(url=url, ner_model=None, kw_model=None)
-    analyzer.setup()
+    # url = 'https://www.ntv.com.tr/galeri/dunya/moskovada-katliam-taniklarin-gozunden-adim-adim-yasananlar,Fyt-uIW2PEu0DWy-Y76KDg'
+    # analyzer= Analyzer(url=url, ner_model=None, kw_model=None)
+    # analyzer.setup()
 
-    result = analyzer.extract_entities()
-    print(result)
+    # result = analyzer.extract_entities()
+    # print(result)
+
+    model = KeywordExtraction(LANGUAGE_MODEL_MAPPING['tr']['kw'])
+    content = "Rusya cart curt uzun bir şeyler ve askeri hava savunma sistemleri. İHA'lar kullanılmaya başlandı. Keskin nişancılar pozisyonları almıştı."
+
+    res = model.predict(content)
+    print(res)
