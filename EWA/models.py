@@ -2,6 +2,7 @@ import fasttext
 
 from transformers import pipeline, AutoModelForTokenClassification, AutoTokenizer
 
+CUSTOM_LANGAUGES = ['tr', 'en']
 
 LANGUAGE_MODEL_MAPPING = {
     "tr": {
@@ -18,7 +19,6 @@ LANGUAGE_MODEL_MAPPING = {
     },
 }
 
-CUSTOM_LANGAUGES = ['tr', 'en']
 
 class NER:
 
@@ -32,7 +32,8 @@ class NER:
         return pipeline('ner', model=model, tokenizer=tokenizer)
     
     def predict(self, text):
-        return self.model(text)
+        return self.model(text, aggregation_strategy="simple")
+
 
 class KeywordExtraction:
 
@@ -43,13 +44,21 @@ class KeywordExtraction:
     def _load_model(self, model_name):
         return True
 
+class LanguageDetection:
 
+    MODEL_PATH = "./EWA/lid.176.ftz"
+    def __init__(self):
+        self.model = self._load_model(self.MODEL_PATH)
+    
+    def _load_model(self, model_path):
+        return fasttext.load_model(model_path)
 
+    def predict(self, text):
+        result, score = self.model.predict(text)
+        return result[0], score[0]
 
-lng_model = fasttext.load_model(("./EWA/lid.176.ftz"))
-
-def detect_language(text):
-    res = lng_model.predict(text)[0][0]
+def detect_language(language_model, text):
+    res, _ = language_model.predict(text)
     language = res.split("__label__")[1]
     if language not in CUSTOM_LANGAUGES:
         return 'other'
@@ -58,6 +67,8 @@ def detect_language(text):
 def load_models(language):
     ner_model_name = LANGUAGE_MODEL_MAPPING[language]['ner']
     ke_model_name = LANGUAGE_MODEL_MAPPING[language]['ke']
+    print("NER model: ", ner_model_name)
+    print("Keyword Extraction model: ", ke_model_name)
 
     ner = NER(ner_model_name)
     keyword = KeywordExtraction(ke_model_name)
@@ -65,10 +76,13 @@ def load_models(language):
     return ner, keyword
 
 
-if __name__ == "__main__":
-    text = input("Input: ")
 
-    lang = detect_language(text)
+
+if __name__ == "__main__":
+    lng_model = LanguageDetection()
+
+    text = "testing NER model with a new user, Fatih Sati who works in a company called VeriUs Technology"
+    lang = detect_language(lng_model, text)
     print("Detected language is: ", lang)
 
     ner, keyword = load_models(lang)
