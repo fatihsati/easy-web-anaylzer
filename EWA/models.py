@@ -18,8 +18,8 @@ LANGUAGE_MODEL_MAPPING = {
         "kw": "sentence-transformers/paraphrase-mpnet-base-v2"
     },
     "other": {
-        "ner": "", # update with multilanguage model.
-        "kw": ""
+        "ner": "Babelscape/wikineural-multilingual-ner", # update with multilanguage model.
+        "kw": "paraphrase-multilingual-MiniLM-L12-v2"
     },
 }
 
