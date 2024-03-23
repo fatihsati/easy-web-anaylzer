@@ -149,15 +149,15 @@ class Analyzer:
 
 
 if __name__ == "__main__":
-    # url = 'https://www.ntv.com.tr/galeri/dunya/moskovada-katliam-taniklarin-gozunden-adim-adim-yasananlar,Fyt-uIW2PEu0DWy-Y76KDg'
-    # analyzer= Analyzer(url=url, ner_model=None, kw_model=None)
-    # analyzer.setup()
+    test_content = """Geçtiğimiz günlerde sosyal medyada bir mekânın işletmecisinin paylaştığı video gündem oldu. İftar için rezervasyon yaptıran 15 kişilik bir grubun haber vermeden mekâna gitmediğini anlatan işletmeci, “Müşteriler arıyor, masalar dolu yer yok diyoruz. Ancak 15 kişi yer ayırtmış, arıyoruz telefonlarını da açmıyorlar. Yemekleri pişti, masalarında salatalar, çorbalar var, hepsi ziyan oldu. Yarım saat önceden bile arayıp ‘gelemiyoruz’ deseler yine sorun olmayacak. Arayıp bilgi verseler masayı başka müşteriye devredebiliriz. Masayı da geçtim, boş kalsın. Peki  hazır pişmiş yemeklere yazık değil mi?” ifadelerine yer verdi.
+    Rezervasyonu iptal etmeden mekâna gitmeyen müşteriler sadece ülkemizde değil, dünya genelinde işletmelerin çok sık karşılaştığı bir sorun. ABD’de bazı işletmeler bu sorunun önüne geçebilmek için ‘rezervasyon ücreti’ alıyor. Kişi başı 100 dolar olan rezervasyon ücreti, son dakikaya kadar bilgi vermeden restorana gitmeyen müşterileri caydırmak, işletmeleri korumak için uygulanıyor."""
+    
+    ner = NER(LANGUAGE_MODEL_MAPPING['tr']['ner'])
+    kw = KeywordExtraction(LANGUAGE_MODEL_MAPPING['tr']['kw'])
+    
+    results = {
+        'ner': ner.predict(test_content),
+        'kw': kw.predict(test_content)
+    }
 
-    # result = analyzer.extract_entities()
-    # print(result)
-
-    model = KeywordExtraction(LANGUAGE_MODEL_MAPPING['tr']['kw'])
-    content = "Rusya cart curt uzun bir şeyler ve askeri hava savunma sistemleri. İHA'lar kullanılmaya başlandı. Keskin nişancılar pozisyonları almıştı."
-
-    res = model.predict(content)
-    print(res)
+    print(results)
